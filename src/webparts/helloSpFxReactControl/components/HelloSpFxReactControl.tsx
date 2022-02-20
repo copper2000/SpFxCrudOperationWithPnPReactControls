@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './HelloSpFxReactControl.module.scss';
 import { IHelloSpFxReactControlProps } from './IHelloSpFxReactControlProps';
-import { escape } from '@microsoft/sp-lodash-subset';
 import { DatePicker, IDatePickerStrings } from 'office-ui-fabric-react/lib/DatePicker';
 import { PeoplePicker, PrincipalType } from "@pnp/spfx-controls-react/lib/PeoplePicker";
 import { TextField } from 'office-ui-fabric-react/lib/TextField';
@@ -10,6 +9,7 @@ import { sp, Web, IWeb } from "@pnp/sp/presets/all";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import { PrimaryButton } from 'office-ui-fabric-react/lib/Button';
+import { RichText } from "@pnp/spfx-controls-react/lib/RichText";
 
 export interface IStates {
   Items: any;
@@ -55,7 +55,7 @@ export default class HelloSpFxReactControl extends React.Component<IHelloSpFxRea
   }
 
   public async getHTML(items: any[]) {
-    var tableData = <table className={styles.table}>
+    var tableData = <table>
       <thead>
         <tr>
           <th>Employee</th>
@@ -103,6 +103,7 @@ export default class HelloSpFxReactControl extends React.Component<IHelloSpFxRea
 
     await web.lists.getByTitle("EmployeeDetails").items.add({
       ID: this.state.EmployeeNameId,
+      Title: this.state.EmployeeName,
       HireDate: new Date(this.state.HireDate),
       JobDescription: this.state.JobDescription
     }).then(i => {
@@ -122,6 +123,7 @@ export default class HelloSpFxReactControl extends React.Component<IHelloSpFxRea
 
   private async UpdateData() {
     let web = Web(this.props.webURL);
+
     await web.lists.getByTitle("EmployeeDetails").items.getById(this.state.ID).update({
       ID: this.state.EmployeeNameId,
       Title: this.state.EmployeeName,
@@ -130,20 +132,49 @@ export default class HelloSpFxReactControl extends React.Component<IHelloSpFxRea
     }).then(i => {
       console.log(i);
     });
+
     alert("Updated Successfully");
+
     this.setState({ EmployeeName: "", HireDate: null, JobDescription: "" });
     this.fetchData();;
   }
 
   private async DeleteData() {
     let web = Web(this.props.webURL);
+
     await web.lists.getByTitle("EmployeeDetails").items.getById(this.state.ID).delete()
       .then(i => {
         console.log(i);
       });
+
     alert("Deleted Successfully");
+
     this.setState({ EmployeeName: "", HireDate: null, JobDescription: "" });
     this.fetchData();
+  }
+
+  public _getPeoplePickerItems = async (items: any[]) => {
+    if (items.length > 0) {
+      this.setState({ EmployeeName: items[0].Title });
+      this.setState({ EmployeeNameId: items[0].Id });
+    } else {
+      this.setState({ EmployeeNameId: "" });
+      this.setState({ EmployeeName: "" });
+    }
+  }
+
+  public onchange(value, stateValue) {
+    let state = {};
+    state[stateValue] = value;
+    this.setState(state);
+  }
+
+  public onTextChange(value) {
+    this.setState({
+      JobDescription: value
+    });
+
+    return value;
   }
 
   public render(): React.ReactElement<IHelloSpFxReactControlProps> {
@@ -151,10 +182,10 @@ export default class HelloSpFxReactControl extends React.Component<IHelloSpFxRea
       <div>
         <h1>CRUD Operations using React SpFx Controls</h1>
         {this.state.HTML}
-        <div className={styles.btnGroup}>
-          <div><PrimaryButton text='Create' onClick={() => this.SaveData()} /></div>
-          <div><PrimaryButton text='Update' onClick={() => this.UpdateData()} /></div>
-          <div><PrimaryButton text='Delete' onClick={() => this.DeleteData()} /></div>
+        <div>
+          <div><PrimaryButton text='Create' onClick={() => this.SaveData()} /></div> <br></br>
+          <div><PrimaryButton text='Update' onClick={() => this.UpdateData()} /></div> <br></br>
+          <div><PrimaryButton text='Delete' onClick={() => this.DeleteData()} /></div> <br></br>
         </div>
         <div>
           <form>
@@ -186,10 +217,10 @@ export default class HelloSpFxReactControl extends React.Component<IHelloSpFxRea
             </div>
             <div>
               <Label>Job Description</Label>
-              <TextField
+              <RichText
                 value={this.state.JobDescription}
-                multiline
-                onChange={(value) => this.onchange(value, "JobDescription")}
+                onChange={(value) => this.onTextChange(value)}
+                isEditMode={true}
               />
             </div>
           </form>
